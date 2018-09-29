@@ -1,0 +1,39 @@
+"use strict";
+const express = require('express');
+const app = express();
+const logger = require('log4js').getLogger();
+const bodyParser = require('body-parser');
+const appInsights = require('applicationinsights');
+logger.level = 'debug';
+const port = 8080;
+const version = '1.0.0.0';
+const instrumentationKey = '76182e6f-58e7-4ab5-91f2-88b587438fe1';
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+appInsights.setup(instrumentationKey).start();
+
+
+app.get('/version', (req, res) => {
+  logger.debug(`${version} was sent.`);
+  res.send(version);
+});
+
+app.post('/', (req, res) => {
+  let log = req.body.message;
+  let time = req.body.time_generated;
+  let service = req.body.service_name;
+  let environment = req.body.environment;
+  logger.debug(`Received: ${time} | ${environment} | ${service} | ${log}`);
+  
+  let properties = {time: time, service: service, environment: environemnt};
+  let client = appInsights.defaultClient;
+  client.trackTrace({message: log, severity: appInsights.Contracts.SeverityLevel.Warning, properties});
+
+  res.status(200).send('processed');
+});
+
+app.listen(port, () => {
+  logger.info(`Server listen on ${port}`);
+});
